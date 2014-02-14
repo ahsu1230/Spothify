@@ -1,4 +1,6 @@
-// Unbounded buffer, where underlying values are arbitrary values
+// Bounded synchronized Linked List with Move-To-Front functionality
+// Data values are a type of struct (defined in songinfo)
+
 package songlist
 
 import (
@@ -36,9 +38,8 @@ func NewList() *List {
 }
 
 
-// Move element to the front of list
+// Move element to the front of list  (*NOTE* Does not use Mutex)
 func (li *List) MoveToFront(ele *ListEle) {
-	li.mutex.Lock()
 	if ele == li.head {
 		return
 	}
@@ -53,12 +54,11 @@ func (li *List) MoveToFront(ele *ListEle) {
 	// set ele's next to current head & set ele as new head
 	ele.next = li.head
 	li.head = ele
-	li.mutex.Unlock()
 	return
 }
 
 // Check if element is in list
-func (li *List) Contains(song songinfo.SongInfo) bool {
+func (li *List) Contains (song songinfo.SongInfo) bool {
 	li.mutex.RLock()
 	_,exists := li.elements[song]
 	li.mutex.RUnlock()
@@ -67,16 +67,16 @@ func (li *List) Contains(song songinfo.SongInfo) bool {
 
 // Retreive SongData - byte array of music file
 // Aftre retrieving, move to front
-func (li *List) Get(song songinfo.SongInfo) []byte {
+func (li *List) Get (song songinfo.SongInfo) []byte {
 	// Is the song in the list?
 	if !li.Contains(song) {
 		return nil
 	}
 	li.mutex.RLock()
 	ele := li.elements[song]
-	li.mutex.RUnlock()
-
+	
 	li.MoveToFront(ele)
+	li.mutex.RUnlock()
 	return ele.data
 }
 
@@ -109,9 +109,10 @@ func (li *List) AddToFront(song songinfo.SongInfo, songbytes []byte) error {
 	li.elements[song] = songbytes
 	li.mutex.Unlock()
 	
+	// If size of list becomes greater than the max limit, must remove least frequent item
 	if li.Size() > MAX_LIST_SIZE {
 		li.PopLast()
-	}	
+	}
 	return nil
 }
 
