@@ -65,23 +65,28 @@ func (li *List) InsertInSort(value uint32) error {
 	if li.head == nil {
 		// Inserting into empty list
 		li.head = ele
-	} else {
-		// Inserting into non-empty list
-		currentPtr := li.head
-		prevPtr := currentPtr
-		for (currentPtr.next == nil && currentPtr.value <= value) {
-			prevPtr = currentPtr
-			currentPtr = currentPtr.next
-		}
-		if currentPtr.next == nil {	// Add to tail!
-			currentPtr.next = ele
-			ele.prev = currentPtr
-			li.tail = ele
-		} else {			// Add in middle of list!
-			prevPtr.next = ele
-			ele.prev = prevPtr
-			currentPtr.prev = ele
-			ele.next = currentPtr
+		li.tail = ele
+	} else { // Inserting into non-empty list
+		if value < li.head.value {  // add to head
+			ele.next = li.head
+			li.head = ele
+		} else {
+			currentPtr := li.head
+			prevPtr := currentPtr
+			for (currentPtr!=nil && currentPtr.value > value) {
+				prevPtr = currentPtr
+				currentPtr = currentPtr.next
+			}
+			if currentPtr == nil { // add to tail!
+				prevPtr.next = ele
+				ele.prev = prevPtr
+				li.tail = ele
+			} else { // currentPtr != nil (add into list)
+				prevPtr.next = ele
+				ele.prev = prevPtr
+				currentPtr.prev = ele
+				ele.next = currentPtr
+			}
 		}
 	}
 	li.elements[value] = ele
@@ -168,8 +173,9 @@ func (li *List) Size() int {
 
 // Returns an array containing the elements of the list in order
 func (li *List) ToArray() []uint32 {
-	li.mutex.RLock()
 	arr := make([]uint32, li.Size())
+	
+	li.mutex.RLock()
 	ele := li.head
 	for c := 0; c < li.Size() ; c++ {
 		arr[c] = ele.value

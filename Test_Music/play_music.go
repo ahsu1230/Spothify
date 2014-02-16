@@ -19,7 +19,7 @@ func main() {
 	fmt.Println("Hello, World.\n")
 	flag.Parse()
 	if (*songName == "") {
-		log.Fatal("Incorrect File Name")
+		log.Fatal("Need a File Name!")
 	}
 	
 	currentPath, err := os.Getwd()
@@ -31,7 +31,27 @@ func main() {
 	
 	fmt.Printf("Playing song... %s\n", songPath)
 	
+	// Does TMP directory already exist?
+	_, err = os.Stat("TMP")
+	if os.IsNotExist(err) {
+		// Does not exist, create directory
+		os.Mkdir("TMP",  os.ModeDir)
+	}
+	
+	// Read song file from songPath into some array...
+	fo, err1 := os.Open(songPath)
+	if err1 != nil {
+		log.Fatal("Error opening file", err1.Error())
+	}
+	
+	// Write song file into TMP Directory
+	s = []string{currentPath, "TMP", *songName}
+	NowPlayPath:= strings.Join(s,"\\")
+	//
+	
+	// Play song in TMP Directory
 	cmd := exec.Command("wmplayer.exe", "/open", songPath)
+	//cmd := exec.Command("wmplayer.exe", "/open", NowPlayPath)
 	
 	runerror := cmd.Run()
 	if runerror != nil {

@@ -25,8 +25,8 @@ Bridge Server
  - Responds to PeerServer Requests
  - Receives Storage Responses
  - Give Peers a list of their nearby peers
+ - Consistent Hashing of requests to send to correct storage in Distributed Storage Cluster
  - (*) Cache popular song requests
- - (*) Consistent Hashing of requests to send to correct storage in Distributed Storage Cluster
  - (*) Cache highly active user info?
  - (*) What if server fails?
 
@@ -36,7 +36,8 @@ Storage Server
  - Responds to BridgeServer Requests
  - Save User Information
  - Stores Song Data
- - (*) Consistent Hashing & Split what each server handles
+ - Consistent Hashing & Split what each server handles
+ - (*) Is it better to have a lead storage server (other storages/bridges register with leader storage)
  - (*) What if server fails?
  - (*) Need Replication mechanism
 

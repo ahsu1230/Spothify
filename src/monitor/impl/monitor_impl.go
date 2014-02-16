@@ -12,23 +12,23 @@ import (
 )
 
 type MonitorServer struct {
-	portnum int			// Port number of Monitor Server
+	portnum int		// Port number of Monitor Server
 	hostport string		// Hostport of Monitor Server
 	numstorage int		// Expected Number of Storage Nodes
 	storageCnt int		// Number of storage nodes registered so far
-	bridgeCnt uint32		// Number of bridge nodes registered so far
+	bridgeCnt uint32	// Number of bridge nodes registered so far
 	
 	registerMutex *sync.RWMutex
-	storageConn map[string] *rpc.Client	// list of storages connected to	
-	bridgeConn map[string] *rpc.Client // list of bridges connected to
+	storageConn map[string] *rpc.Client		// list of storages connected to	
+	bridgeConn map[string] *rpc.Client 		// list of bridges connected to
 	servers map[string] monitorproto.Node	// list of servers
+	//serverIDs map[uint32] string			// maps serverIDs to respective hostports
 	
 	mrpc *monitorrpc.MonitorRPC	// RPC object used to register RPC functions
 }
 
 
 func NewMonitorServer(portnum int, numstorage int) *MonitorServer {
-
 	ms := new(MonitorServer)
 	ms.portnum = portnum
 	ms.numstorage = numstorage
@@ -39,7 +39,8 @@ func NewMonitorServer(portnum int, numstorage int) *MonitorServer {
 	ms.storageConn = make(map[string] *rpc.Client)
 	ms.bridgeConn = make(map[string] *rpc.Client)
 	ms.servers = make(map[string] monitorproto.Node)
-
+	//ms.serverIDs = make(map[uint32] string)
+	
 	//Register RPC functions
 	ms.mrpc = monitorrpc.NewMonitorRPC(ms)
 	rpc.Register(ms.mrpc)
@@ -68,7 +69,15 @@ func (ms *MonitorServer) RegisterServer(args *monitorproto.RegisterArgs, reply *
 	
 	switch args.NodeInfo.Type {
 	case monitorproto.STORAGE:
-		// save stuff in monitor?
+		/*
+		_, exists := ms.serverIDs[args.NodeInfo.ID]
+		if !exists {
+			ms.serverIDs[args.NodeInfo.ID] = args.NodeInfo.Hostport
+		} else {
+			log.Printf("Storage server with ID %d already registered!", args.NodeInfo.ID)
+		}
+		//*/
+		
 		ms.storageCnt++
 		if ms.storageCnt >= ms.numstorage {
 			log.Println("All Storage Servers have joined with Monitor!")

@@ -18,7 +18,7 @@ type SongInfo struct {
 }
 
 type StorageServer struct {
-	id uint32				// Storage ID
+	id uint32			// Storage ID
 	portnum int			// Port number of Storage Server
 	hostport string		// Hostport of Storage Server
 	monitorHP string	// Hostport of Monitor Server
@@ -34,13 +34,14 @@ type StorageServer struct {
 	DB_lock	*sync.RWMutex
 }
 
-func NewStorageServer(portnum int, monitorPort int) *StorageServer {
+func NewStorageServer(portnum int, monitorPort int, id uint32) *StorageServer {
 
 	ss := new(StorageServer)
 	ss.portnum = portnum
 	ss.hostport = fmt.Sprintf("localhost:%d", portnum)
 	ss.monitorHP = fmt.Sprintf("localhost:%d", monitorPort)
 	ss.connected = make(map[string] *rpc.Client)
+	ss.id = id
 	
 	ss.songDB = make(map[SongInfo] string)
 	ss.userDB = make(map[string] (map[string] *stringlist.List)) // when new playlist, make interior map

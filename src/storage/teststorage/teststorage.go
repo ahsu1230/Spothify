@@ -26,6 +26,11 @@ func main() {
 		log.Println("Monitor defaulting to 9009")
 		*monitorport = 9009
 	}
+	id := flag.Arg(0)
+	storageID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		log.Println("Invalid Storage ID!");
+	}
 	
 	l, e := net.Listen("tcp", fmt.Sprintf(":%d", *portnum))
 	if e != nil {
@@ -35,8 +40,8 @@ func main() {
 	log.Println("Server listening at ", listenport)
 	*portnum, _ = strconv.Atoi(listenport)
 
-	fmt.Printf("Arguments: [portnum:%d] [monitorport:%d]\n", *portnum, *monitorport)
-	ss := storagenode.NewStorageServer(*portnum, *monitorport)
+	log.Println("Arguments: [portnum:%d] [monitorport:%d] [id:%d]\n", *portnum, *monitorport, storageID)
+	ss := storagenode.NewStorageServer(*portnum, *monitorport, uint32(storageID))
 
 	srpc := storagenoderpc.NewStorageRPC(ss)
 	rpc.Register(srpc)
