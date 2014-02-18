@@ -5,17 +5,15 @@ import (
 	"log"
 	"net/rpc"
 	"sync"
+	"io/ioutil"
+	"os"
 	"../proto"
 	"../rpc"
 	"../../consts"
 	"../../monitor/proto"
 	"../../util/stringlist"
+	"../../util/songinfo"
 )
-
-type SongInfo struct {
-	name	string
-	artist	string
-}
 
 type StorageServer struct {
 	id uint32			// Storage ID
@@ -26,7 +24,7 @@ type StorageServer struct {
 	connected map[string] *rpc.Client	// list of servers connected to
 	
 	// Storing Info
-	songDB	map[SongInfo] string		// map song info to file path
+	songDB	map[songinfo.SongInfo] string		// map song info to file path
 	userDB	map[string] (map[string] *stringlist.List) // map usernames to a (map of playlist names -> list of songs)	
 	userLocks	map[string] *sync.RWMutex
 	
@@ -43,7 +41,7 @@ func NewStorageServer(portnum int, monitorPort int, id uint32) *StorageServer {
 	ss.connected = make(map[string] *rpc.Client)
 	ss.id = id
 	
-	ss.songDB = make(map[SongInfo] string)
+	ss.songDB = make(map[songinfo.SongInfo] string)
 	ss.userDB = make(map[string] (map[string] *stringlist.List)) // when new playlist, make interior map
 	ss.userLocks = make(map[string] *sync.RWMutex)
 
@@ -56,8 +54,23 @@ func NewStorageServer(portnum int, monitorPort int, id uint32) *StorageServer {
 	ss.srpc = storagenoderpc.NewStorageRPC(ss)
 	rpc.Register(ss.srpc)
 	
+	// Read in all songs in STORAGE folder
+	serverDir := fmt.Sprintf("./storage_%d/songs", ss.id)
+	fmt.Printf("Reading songs from '%s' \n", serverDir)
+	Files, err := ioutil.ReadDir(serverDir)
+	if err != nil {
+		log.Println("Error reading from directory!", err.Error())
+	}
+	for _, f := range Files {
+		si := songinfo.NewSong(f.Name())
+		sp := fmt.Sprintf("%s/%s", serverDir, f.Name())
+		fmt.Printf("\t%s\n", sp)
+		ss.songDB[*si] = sp
+	}
+	
 	// Register With Monitor
 	ss.RegisterWithMonitor()
+	
 	return ss
 }
 
@@ -187,6 +200,21 @@ func (ss *StorageServer) RenamePLRequest(args *storagenodeproto.ChangePLArgs, re
 
 func (ss *StorageServer) DownloadPLRequest(args *storagenodeproto.DownloadPLArgs, reply *storagenodeproto.DownloadPLReply) error {
 	fmt.Printf("DownloadPlaylist [%s] Request Received from '%s' \n", args.TargetPlaylistName, args.CInfo.Username)
+	reply.Status = storagenodeproto.FAILED
+	targetUser := args.CInfo.Username
+	ss.NewUsernameRequest(targetUser)
+	ss.userLocks[targetUser].Lock()
+	_, exists := ss.userDB[targetUser][args.TargetPlaylistName]
+	if !exists {
+		fmt.Println("\tError: Object Not Found!")
+		reply.Status = storagenodeproto.OBJECT_NOT_FOUND
+	} else {
+		// To download target playlist...
+		// 
+		
+		reply.Status = storagenodeproto.OK
+	}
+	ss.userLocks[targetUser].Unlock()
 	return nil
 }
 
@@ -299,7 +327,55 @@ func (ss *StorageServer) ViewAllSongsRequest(args *storagenodeproto.SongArgs, re
 
 
 func (ss *StorageServer) PlaySongRequest(args *storagenodeproto.PlayArgs, reply *storagenodeproto.PlayReply) error {
-	fmt.Printf("PlaySong [%s] Request Received from '%s' \n", args.SongName, args.CInfo.Username)
+	fmt.Printf("PlaySong [%s] Request Received from '%s' \n", args.SInfo.Name, args.CInfo.Username)
+	reply.SongBytes = nil
+	reply.Status = storagenodeproto.FAILED
+	targetUser := args.CInfo.Username
+	ss.NewUsernameRequest(targetUser)
+	
+	// Find song path using SongInfo -> path string map
+	ss.DB_lock.RLock()
+	sp, exists := ss.songDB[args.SInfo]
+	if !exists {
+		ss.DB_lock.RUnlock()
+		reply.Status = storagenodeproto.OBJECT_NOT_FOUND
+		return nil
+	}
+	
+	// Open song file
+	fmt.Println("Opening File...", sp)
+	fo, err1 := os.Open(sp)
+	if err1 != nil {
+		log.Println("Error opening file", err1.Error())
+		ss.DB_lock.RUnlock()
+		return err1
+	}
+	
+	// Read in song file into []byte
+	mp3Info, err2 := fo.Stat()
+	if err2 != nil {
+		log.Println("Error getting FileInfo", err2.Error())
+		ss.DB_lock.RUnlock()
+		return err2
+	}
+	songArray := make([]byte, mp3Info.Size())
+	m, errRead := fo.Read(songArray)
+	if errRead != nil {
+		log.Println("Error reading file!", errRead.Error())
+		ss.DB_lock.RUnlock()
+		return errRead
+	}
+	if m != len(songArray) {
+		fmt.Println("Reading File Unsuccessful...")
+		ss.DB_lock.RUnlock()
+		return nil
+	}
+	fmt.Println("Success! Replying Back with File...")
+	// reply back with []byte
+	ss.DB_lock.RUnlock()
+	reply.SongBytes = songArray
+	reply.Status = storagenodeproto.OK
+	
 	return nil
 }
 

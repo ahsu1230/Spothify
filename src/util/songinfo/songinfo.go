@@ -1,19 +1,22 @@
 package songinfo
 
-type SongInfo {
-	name string
-	artist string
-	album string
+type SongInfo struct {
+	Name string
+	//Artist string
+	//Album string
 }
 
-func NewSong(newName, newArtist, newAlbum string) *SongInfo {
+
+//func NewSong(newName, newArtist, newAlbum string) *SongInfo {
+func NewSong(newName string) *SongInfo {
 	newSong := new(SongInfo)
-	newSong.name = newName
-	newSong.artist = newArtist
-	newSong.album = newAlbum
+	newSong.Name = newName
+	//newSong.Artist = newArtist
+	//newSong.Album = newAlbum
 	return newSong
 }
 
 func equals(s1, s2 SongInfo) bool{
-	return (s1.name == s2.name) && (s1.artist == s2.artist) && (s1.album == s2.artist)
+	//return (s1.Name == s2.Name) && (s1.Artist == s2.Artist) && (s1.Album == s2.Album)
+	return (s1.Name == s2.Name) 
 }

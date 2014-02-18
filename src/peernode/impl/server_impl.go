@@ -3,12 +3,15 @@ package peernode
 import (
 	"fmt"
 	"time"
+	"log"
+	"os"
+	"strings"
 	"net/rpc"
 	"../proto"
 	"../rpc"
 	"../../bridge/proto"
 	"../../consts"
-	"log"
+	"../../util/songinfo"
 )
 
 const UpdatePeersWaitSecs = 10
@@ -42,6 +45,19 @@ func NewPeerServer(username string, portnum int, bridgeHP string) *PeerServer {
 	ps.prpc = peernoderpc.NewPeerRPC(ps)
 	rpc.Register(ps.prpc)
 
+	// Create userdata directory for user!
+	currentPath, err := os.Getwd()
+	if err!=nil {
+		log.Println("Error getting working directory", err.Error())
+	}
+	userDir := fmt.Sprintf("%s\\..\\userdata\\%s", currentPath, ps.username)
+	// Does user directory already exist?
+	_, err = os.Stat(userDir)
+	if os.IsNotExist(err) {
+		// Does not exist, create directory
+		os.Mkdir(userDir,  os.ModeDir)
+	}
+	
 	// Connect to a Bridge
 	ps.ConnectToBridge(ps.assignedBridgeHP)
 	
@@ -338,7 +354,65 @@ func (ps *PeerServer) PlaySongRequest(args *peernodeproto.PlayArgs, reply *peern
 		reply.Status = peernodeproto.INCORRECTPEER
 		return nil
 	}
-	fmt.Println("PlaySong [%s] Request Received from '%s'", args.SongName, args.PInfo.Username)
+	fmt.Println("PlaySong [%s] Request Received from '%s'", args.SInfo.Name, args.PInfo.Username)
+	newClientInfo := bridgenodeproto.ClientInfo{args.PInfo.Username, ps.hostport}
+	newSongInfo := songinfo.NewSong(args.SInfo.Name)
+	newArgs := bridgenodeproto.PlayArgs{newClientInfo, *newSongInfo}
+	var newReply bridgenodeproto.PlayReply
+	
+	err := ps.serversConn[ps.assignedBridgeHP].Call("BridgeRPC.PlaySongRequest", &newArgs, &newReply)
+	if err != nil {
+		fmt.Println("Error: ", err.Error())
+		reply.Status = peernodeproto.FAILED
+		return err
+	} else if newReply.Status != bridgenodeproto.OK {
+		fmt.Println("Denied! \n")
+		reply.Status = peernodeproto.FAILED
+		return nil
+	}
+	fmt.Printf("Success! \n")
+	
+	currentPath, errCD := os.Getwd()
+	if errCD!=nil {
+		log.Fatal("Error getting working directory", errCD.Error())
+	}
+	
+	// Write song file into TMP directory (under ../userdata/%user%)!
+	tmp_path := fmt.Sprintf("%s\\..\\userdata\\%s\\TMP", currentPath, ps.username)
+	// Does TMP directory already exist?
+	_, err = os.Stat(tmp_path)
+	if os.IsNotExist(err) {
+		// Does not exist, create directory
+		fmt.Println("Create New Directory @", tmp_path)
+		os.Mkdir(tmp_path,  os.ModeDir)
+	}
+	
+	// Write song file into TMP Directory
+	s := []string{tmp_path, args.SInfo.Name}
+	NowPlayPath := strings.Join(s,"\\")
+	fmt.Println("New Path:", NowPlayPath)
+	
+	// Write contents to TMP folder (NowPlayPath)
+	newFO, err3 := os.Create(NowPlayPath)
+	if err3 != nil {
+		log.Println("Error creating New File", err3.Error())
+		reply.Status = peernodeproto.FAILED
+		return nil
+	}
+	n, err4 := newFO.Write(newReply.SongBytes)
+	if err4 != nil {
+		log.Println("Error writing New File", err4.Error())
+		reply.Status = peernodeproto.FAILED
+		return nil
+	}
+	if n != len(newReply.SongBytes) {
+		log.Println("Error writing New File - num mismatch!", n, len(newReply.SongBytes))
+		reply.Status = peernodeproto.FAILED
+		return nil
+	}
+	
+	reply.PlayPath = NowPlayPath
+	reply.Status = newReply.Status
 	return nil
 }
 

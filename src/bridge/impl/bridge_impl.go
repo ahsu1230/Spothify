@@ -13,6 +13,7 @@ import (
 	//"../../util/stringlist"
 	"../../util/uint32list"
 	"../../util/hasher"
+	"../../util/songinfo"
 )
 
 type SongInfo struct {
@@ -408,7 +409,27 @@ func (bs *BridgeServer) PlaySongRequest(args *bridgenodeproto.PlayArgs, reply *b
 		reply.Status = bridgenodeproto.UNREGISTERED
 		return nil
 	}
-	fmt.Println("PlaySong [%s] Request Received from '%s'", args.SongName, args.CInfo.Username)
+	fmt.Println("PlaySong [%s] Request Received from '%s'", args.SInfo.Name, args.CInfo.Username)
+
+	reply.Status = bridgenodeproto.FAILED
+	newClientInfo := storagenodeproto.ClientInfo{args.CInfo.Username, bs.hostport}
+	newSongInfo := songinfo.NewSong(args.SInfo.Name)
+	newArgs := storagenodeproto.PlayArgs{newClientInfo, *newSongInfo}
+	var newReply storagenodeproto.PlayReply
+	
+	// Hash by song name NOT username (like most operations)
+	targetHP := bs.GetStorageHP(args.SInfo.Name)
+	err := bs.connected[targetHP].Call("StorageRPC.PlaySongRequest", &newArgs, &newReply)
+	if err != nil {
+		fmt.Println("\tError: ", err.Error())
+		return err
+	} else if newReply.Status != storagenodeproto.OK {
+		fmt.Printf("Denied!\n")
+		reply.Status = bridgenodeproto.FAILED
+		return nil
+	}
+	fmt.Printf("Success! \n")
+	reply.SongBytes = newReply.SongBytes
 	reply.Status = bridgenodeproto.OK
 	return nil
 }

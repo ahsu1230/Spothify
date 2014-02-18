@@ -12,7 +12,7 @@ import (	"fmt"
 
 // Partitioning:  Defined here so that all implementations
 // use the same mechanism.
-func Storehash(key string) uint32 {+
+func Storehash(key string) uint32 {
 	hasher := fnv.New32()
 	hasher.Write([]byte(key))
 	return hasher.Sum32()

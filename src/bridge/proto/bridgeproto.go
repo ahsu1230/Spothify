@@ -3,6 +3,7 @@ package bridgenodeproto
 import(
 	//"../../util/stringlist"
 	"hash/fnv"
+	"../../util/songinfo"
 )
 
 // Status codes
@@ -82,10 +83,10 @@ type SearchReply struct {
 /* Playing a requested song */
 type PlayArgs struct {
 	CInfo	ClientInfo
-	SongName	string
-	ArtistName	string
+	SInfo	songinfo.SongInfo
 }
 type PlayReply struct {
+	SongBytes		[]byte
 	Status int
 }
 

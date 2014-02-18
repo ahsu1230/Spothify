@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"log"
 	"net/rpc"
+	"strings"
 	"time"
+	"os"
+	"os/exec"
 	"../proto"
 	"../../consts"
 	"../../util/stringlist"
+	"../../util/songinfo"
 )
+
+var MediaPlayer = "wmplayer.exe" 		// Application executable of Media Player
 
 type PeerClient struct {
 	username 		string
@@ -79,22 +85,22 @@ func (pc *PeerClient) DisconnectFromServer() error {
 
 /* Call RPCs */
 func (pc *PeerClient) PlaySong (songname string) (int, error) {
-	fmt.Printf("Playing Song '%s'...", songname)
+	fmt.Printf("Playing Song '%s'...\n", songname)
 
-	// First check to see if song is in local cache
-	// If it is... play it!
+	// First check to see if song is in offline local cache...
+	// Play Song!
 	
-	
+	// Otherwise... (file does not exist on local cache)
+	fmt.Println("Not in local! Look online!")
 	if pc.offlineMode { // if offline, return with error
 		fmt.Println("Offline - song not found!\n")
 		return 0, nil
 	} else { // online, send request to server
-		newMsg := fmt.Sprintf("PlaySong:[%s]", songname)
 		newPInfo := peernodeproto.PeerInfo{pc.username, pc.portnum}
-		//newRInfo := peernodeproto.RecipientInfo{peernodeproto.TO_BRIDGE, }
-		args := peernodeproto.SendMsgArgs{newPInfo, peernodeproto.TO_BRIDGE, newMsg}
-		var reply peernodeproto.SendMsgReply
-		err := pc.serverConn.Call("PeerRPC.SendMsgRequest", &args, &reply)
+		newSInfo := songinfo.NewSong(songname)
+		args := peernodeproto.PlayArgs{newPInfo, *newSInfo}
+		var reply peernodeproto.PlayReply
+		err := pc.serverConn.Call("PeerRPC.PlaySongRequest", &args, &reply)
 		if err != nil {
 			fmt.Println("Error: ", err.Error())
 			return 0, err
@@ -102,8 +108,36 @@ func (pc *PeerClient) PlaySong (songname string) (int, error) {
 			fmt.Println("Denied!")
 			return reply.Status, nil
 		}
-		fmt.Println("Message Replied: ", reply.Message)
+		fmt.Println("Request OK'd")
+		
+		// Play Song!
+		currentPath, errCD := os.Getwd()
+		if errCD!=nil {
+			log.Fatal("Error getting working directory", errCD.Error())
+		}
+		s1 := strings.Split(currentPath, "\\")
+		s2 := s1[0:len(s1)-1]
+		s3 := strings.Join(s2, "\\")
+		playPath := fmt.Sprintf("%s\\userdata\\%s\\TMP\\%s", s3, pc.username, songname)
+		fmt.Println(playPath)
+		//reply.PlayPath = "C:\\Users\\AaronHsu\\Documents\\GitHub\\Spothify\\src\\peernode\\userdata\\ahsu\\TMP\\SongA.mp3"
+		//reply.PlayPath = "C:\\Users\\AaronHsu\\Documents\\GitHub\\Spothify\\src\\peernode\\userdata\\jfan89\\TMP\\SongB.mp3"
+		//fmt.Println(reply.PlayPath)
+		//fmt.Println(playPath == reply.PlayPath)
+		// Does the file exist?
+		_, errOS := os.Stat(playPath)
+		if !os.IsNotExist(errOS) { // If it does exist, play it!
+			cmd := exec.Command("wmplayer.exe", "/open", playPath)
+			runerror := cmd.Run()
+			if runerror != nil {
+				log.Println("Error playing music file!", runerror.Error())
+				return 0, runerror
+			}
+		} else {
+			log.Println("File does not exist? ")
+		}
 	}
+
 	return 0, nil
 }
 

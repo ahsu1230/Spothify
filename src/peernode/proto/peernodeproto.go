@@ -1,6 +1,7 @@
 package peernodeproto
 
 import(
+	"../../util/songinfo"
 )
 
 // Status codes
@@ -89,10 +90,10 @@ type SearchReply struct {
 /* Playing a requested song */
 type PlayArgs struct {
 	PInfo	PeerInfo
-	SongName	string
-	ArtistName	string
+	SInfo	songinfo.SongInfo
 }
 type PlayReply struct {
+	PlayPath	string
 	Status int
 }
 

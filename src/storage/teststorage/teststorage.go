@@ -40,7 +40,7 @@ func main() {
 	log.Println("Server listening at ", listenport)
 	*portnum, _ = strconv.Atoi(listenport)
 
-	log.Println("Arguments: [portnum:%d] [monitorport:%d] [id:%d]\n", *portnum, *monitorport, storageID)
+	log.Printf("Arguments: [portnum:%d] [monitorport:%d] [id:%d]\n", *portnum, *monitorport, storageID)
 	ss := storagenode.NewStorageServer(*portnum, *monitorport, uint32(storageID))
 
 	srpc := storagenoderpc.NewStorageRPC(ss)

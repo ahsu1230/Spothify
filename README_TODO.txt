@@ -6,8 +6,8 @@ Last Updated: 2/10/2014
 
 Peer Client
  - Most Bridge & Storage Interaction: Add/Delete/Rename/View Playlists, Add/Delete/View Songs, Quit
- - (*) PlaySong
- - (*) DownloadPlaylist & Saving Song Files
+ - PlaySong (Save Song files on TMP)
+ - (*) DownloadPlaylist & Saving Song Files (in a go thread)
  - (*) PlaySong (Offline Mode)
  - (*) Offline Mode
  - (*) SortPlaylist, SearchSong, SearchArtist implementations (only sends messages to bridge / storage)
@@ -37,6 +37,7 @@ Storage Server
  - Save User Information
  - Stores Song Data
  - Consistent Hashing & Split what each server handles
+ - (*) Allow peers to download songs (in a go thread)
  - (*) Is it better to have a lead storage server (other storages/bridges register with leader storage)
  - (*) What if server fails?
  - (*) Need Replication mechanism
@@ -45,5 +46,5 @@ Storage Server
 Monitor Server (?)
  - Waits until enough servers connect with monitor
  - Maintains Connection with all Storage servers
- - (*) What happens 
- - (*) What if server fails? Single point of failure!
+ - (*) What happens if bridge server fails? what happens if storage servers fail?
+ - (*) What if monitor fails? Single point of failure!
