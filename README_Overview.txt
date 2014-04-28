@@ -1,24 +1,6 @@
 Project Spothify
 Author: Aaron Hsu
 Last Updated: 2/10/2014
-
-:::::::::::::::Introduction:::::::::::::::
-The purpose of Project Spothify is to recreate the music application Spotify.
-Spotify is made to provide a music streaming device as a service that can handle 
-high scalability and low latency (fast) music streaming.
-
-It requires a lot of distributed systems concepts including the following...
-	ACID Client-Server Operations, P2P Networking, Caching popular requests in between servers, 
-	Distributed Consistent Hashing, Distributed Storage Replication, Partition Fault Tolerance & Availability,
-	and good programming style!
-
-Language: GO
-http://golang.org/doc/
-It's a clean and efficient programming language that has built in concurrency mechanisms
-that allow it to easily write programs that use multicore/networked machines
-
-Why GO? Language used when I took Fall 2012 15-440 Distributed Systems at Carnegie Mellon University
-	Continue practice an interesting language
 	
 
 :::::::::::::::File Source Tree:::::::::::::::
